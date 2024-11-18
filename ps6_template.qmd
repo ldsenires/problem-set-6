@@ -1,6 +1,6 @@
 ---
 title: "Problem Set 6 - Waze Shiny Dashboard"
-author: "Peter Ganong, Maggie Shi, and Andre Oviedo"
+author: "Luis Señires"
 date: today
 format: 
   pdf:
@@ -24,9 +24,9 @@ We use (`*`) to indicate a problem that we think might be time consuming.
 # Steps to submit (10 points on PS6) {-}
 
 1. "This submission is my work alone and complies with the 30538 integrity
-policy." Add your initials to indicate your agreement: \*\*\_\_\*\*
-2. "I have uploaded the names of anyone I worked with on the problem set **[here](https://docs.google.com/forms/d/185usrCREQaUbvAXpWhChkjghdGgmAZXA3lPWpXLLsts/edit)**"  \*\*\_\_\*\* (2 point)
-3. Late coins used this pset: \*\*\_\_\*\* Late coins left after submission: \*\*\_\_\*\*
+policy." Add your initials to indicate your agreement: \*\*LS\*\*
+2. "I have uploaded the names of anyone I worked with on the problem set **[here](https://docs.google.com/forms/d/185usrCREQaUbvAXpWhChkjghdGgmAZXA3lPWpXLLsts/edit)**"  \*\*LS\*\* (2 point)
+3. Late coins used this pset: \*\*00\*\* Late coins left after submission: \*\*01\*\*
 
 4. Before starting the problem set, make sure to read and agree to the terms of data usage for the Waze data [here](https://canvas.uchicago.edu/courses/59054/quizzes/130617).
 
@@ -73,6 +73,8 @@ import pandas as pd
 from datetime import date
 import numpy as np
 alt.data_transformers.disable_max_rows() 
+from zipfile import ZipFile
+import os
 
 import json
 ```
@@ -84,32 +86,208 @@ import json
 1. 
 
 ```{python}
+# Extract data from zip file
+base = r"C:\Users\LUIS\Documents\GitHub\problem-set-6"
+folder = "waze_data"
+path = os.path.join(base, folder, "waze_data_sample.csv")
 
+with ZipFile("waze_data.zip", "r") as f:
+    f.extractall(folder)
+
+# Load sample data
+df_waze_sample = pd.read_csv(path)
+```
+
+```{python}
+# Get variable names and data types
+df_cols = pd.DataFrame()
+df_cols["name"] = df_waze_sample.columns.tolist()
+df_cols["dtype"] = df_waze_sample.dtypes.tolist()
+
+# Assign data types using Altair syntax
+df_cols["altair_dtype"] = ["O", "N", "Q", "Q", "N", "N",
+                            "N", "N", "N", "O", "Q", "Q", "O", "-", "-", "-"]
+
+# Print table
+print(df_cols.to_markdown())
 ```
 
 2. 
 
 ```{python}
+# Load full data
+folder = "waze_data"
+path = os.path.join(base, folder, "waze_data.csv")
 
+df_waze = pd.read_csv(path)
 ```
+
+```{python}
+# Count number of missing and non-missing values
+na_count = df_waze.isna().sum()
+non_na_count = df_waze.notna().sum()
+
+# Create new dataframe with counts
+df_count = pd.DataFrame({
+    "name": na_count.index,
+    "na_count": na_count.values,
+    "non_na_count": non_na_count.values
+})
+
+# Melt data for stacking
+df_count_long = df_count.melt(id_vars="name", value_vars=[
+                              "na_count", "non_na_count"], var_name="count_type", value_name="count")
+
+# Create stacked bar chart
+chart_stacked_count = alt.Chart(df_count_long).mark_bar().encode(
+    alt.X("name:N"),
+    alt.Y("sum(count):Q"),
+    alt.Color("count_type")
+)
+
+chart_stacked_count
+```
+
+The variables with missing values are nThumbsUp, street, and subtype, with nThumbsUp having the highest share of missing values.
 
 3. 
 
 ```{python}
+# Combine data by "type" and "subtype"
+df_type = df_waze.groupby(
+    ["type", "subtype"], dropna=False).size().reset_index()
 
+# Get unique values
+unique_type = df_type["type"].unique()
+print(unique_type)
+
+unique_subtype = df_type["subtype"].unique()
+print(unique_subtype)
+```
+
+There are four "types" present in the dataset (i.e. accident, hazard, jam, and road closed), and all four have a missing value "subtype." The Hazard type has enough information to consider that it could have sub-subtypes.
+
+* Accident
+  + Major
+  + Minor
+
+* Hazard
+  + On road
+    - Car stopped
+    - Construction
+    - Emergency vehicle
+    - Ice
+    - Lane closed
+    - Object
+    - Pot hole
+    - Road kill
+    - Traffic light fault
+  + On shoulder
+    - Animals
+    - Car stopped
+    - Missing sign
+  + Weather
+    - Flood
+    - Fog
+    - Hail
+    - Heavy snow
+
+* Jam
+  + Heavy traffic
+  + Light traffic
+  + Moderate traffic
+  + Stand still traffic
+
+* Road Closed
+  + Construction
+  + Event
+  + Hazard
+
+I think we should keep the NA subtype because there is a significant number of entries in the dataset with this subtype, and removing them could change the composition of our data and affect the results of our analysis/dashboard.
+
+```{python}
+# Reclassify missing values
+df_type["subtype"] = df_type["subtype"].fillna("Unclassified")
 ```
 
 4. 
 
 1. 
 ```{python}
-
+# Create new df with initial columns
+df_crosswalk = pd.DataFrame()
+df_crosswalk["type"] = df_type["type"]
+df_crosswalk["subtype"] = df_type["subtype"]
+df_crosswalk["updated_type"] = ""
+df_crosswalk["updated_subtype"] = ""
+df_crosswalk["updated_subsubtype"] = ""
 ```
 
 2. 
 
 ```{python}
+# Fill in updated type
+df_crosswalk["updated_type"] = df_crosswalk["type"].str.capitalize()
 
+# Define a function to update subtype
+
+
+def update_subtype(row):
+    # Check if unclassified
+    if row == "Unclassified":
+        return "Unclassified"
+
+    # Check if hazard
+    if "HAZARD" in row:
+
+        # Create list of Hazard subtypes
+        hazard_subtypes = ["ON_ROAD", "ON_SHOULDER", "WEATHER"]
+
+        # Iterate over list
+        for index in range(0, 3):
+            if hazard_subtypes[index] in row:
+                return hazard_subtypes[index]
+
+    # Create list of remaining alert types
+    alert_types = ["ACCIDENT", "JAM", "ROAD_CLOSED"]
+
+    # Iterate over list
+    for index in range(0, 3):
+        length = len(alert_types[index])
+
+        if alert_types[index] in row:
+            return row[(length + 1):]
+
+
+# Fill in updated subtype
+df_crosswalk["updated_subtype"] = df_crosswalk["subtype"].apply(update_subtype)
+df_crosswalk["updated_subtype"] = df_crosswalk["updated_subtype"].str.capitalize()
+
+# Define a function to update subsubtype
+
+
+def update_subsubtype(row):
+    # Check if hazard
+    if "HAZARD" in row:
+
+        # Create list of Hazard subtypes
+        hazard_subtypes = ["ON_ROAD_", "ON_SHOULDER_", "WEATHER_"]
+
+        # Iterate over list
+        for index in range(0, 3):
+            length = len(hazard_subtypes[index])
+
+            if hazard_subtypes[index] in row:
+                return row[(length + 7):]
+
+    else:
+        return np.nan
+
+
+# Fill in updated subsubtype
+df_crosswalk["updated_subsubtype"] = df_crosswalk["subtype"].apply(
+    update_subsubtype)
+df_crosswalk["updated_subsubtype"] = df_crosswalk["updated_subsubtype"].str.capitalize()
 ```
 
 3. 
