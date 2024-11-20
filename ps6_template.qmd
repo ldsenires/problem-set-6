@@ -75,6 +75,7 @@ import numpy as np
 alt.data_transformers.disable_max_rows() 
 from zipfile import ZipFile
 import os
+import re
 
 import json
 ```
@@ -210,7 +211,7 @@ df_type["subtype"] = df_type["subtype"].fillna("Unclassified")
 
 4. 
 
-1. 
+a. 
 ```{python}
 # Create new df with initial columns
 df_crosswalk = pd.DataFrame()
@@ -221,7 +222,7 @@ df_crosswalk["updated_subtype"] = ""
 df_crosswalk["updated_subsubtype"] = ""
 ```
 
-2. 
+b. 
 
 ```{python}
 # Fill in updated type
@@ -288,7 +289,7 @@ df_crosswalk["updated_subsubtype"] = df_crosswalk["subtype"].apply(
 df_crosswalk["updated_subsubtype"] = df_crosswalk["updated_subsubtype"].str.capitalize()
 ```
 
-3. 
+c. 
 
 ```{python}
 # Reclassify missing subtypes in original dataset
@@ -305,7 +306,7 @@ updated_type_subtype_count.get(("Accident", "Unclassified"))
 
 There are 24,359 rows tagged as Accident - Unclassified.
 
-4. 
+d. 
 
 ```{python}
 # Compare "type" values for crosswalk and merged dfs
@@ -330,23 +331,77 @@ crosswalk_subtypes == merged_subtypes
 
 a. 
 ```{python}
+# Extract coordinates from geo data
+coordinate_pattern = r"([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)"
+df_merged[["longitude", "latitude"]
+          ] = df_merged["geo"].str.extract(coordinate_pattern)
 
+# Convert coordinates to float
+df_merged["longitude"] = df_merged["longitude"].astype(float)
+df_merged["latitude"] = df_merged["latitude"].astype(float)
 ```
+
+ChatGPT prompt: in python, create a regular expression that extracts coordinates from a geo variable in a dataframe that holds coordinates data in the form POINT(-87.676685 41.929692)
 
 b. 
 ```{python}
+# Bin coordinates by rounding
+df_merged["longitude"] = df_merged["longitude"].round(2)
+df_merged["latitude"] = df_merged["latitude"].round(2)
 
+# Count observations per coordinate pair
+df_coord_count = df_merged.groupby(
+    ["longitude", "latitude"]).size().reset_index()
+df_coord_count.sort_values(by=0, ascending=False, inplace=True)
+df_coord_count.head(1)
 ```
 
+The binned coordinates (-87.65, 41.88) has the greatest number of observations in the dataset with 21,325.
 
 c. 
-```{python}
 
+```{python}
+# Aggregate binned counts based on type, subtype, and coordinates
+df_coord_count = df_merged.groupby(
+    ["updated_type", "updated_subtype", "longitude", "latitude"]).size().reset_index()
+df_coord_count = df_coord_count.rename(columns={0: "count"})
+
+# Aggregate by type and subtype and get top 10 largest rows by count
+df_coord_count_top10 = df_coord_count.groupby(
+    ["updated_type", "updated_subtype"], group_keys=False).apply(lambda x: x.nlargest(10, "count"))
+
+# Save to csv
+folder = "top_alerts_map"
+filepath = os.path.join(base, folder, "top_alerts_map.csv")
+df_coord_count_top10.to_csv(filepath, index=False)
+
+# Get number of rows
+len(df_coord_count_top10)
 ```
 
-d. 
-```{python}
+The dataframe has 155 rows. Aggregation was first done based on type, subtype, latitude, and longitude to get the number of observations for each unique combination. Then we further aggregate the data to get the top 10 rows for each unique combination of type and subtype based on count.
 
+2. 
+```{python}
+# Filter data for "Jam - Heavy Traffic" alerts
+df_jam_heavy = df_coord_count_top10.loc[
+    (df_coord_count_top10["updated_type"] == "Jam") & (df_coord_count_top10["updated_subtype"] == "Heavy_traffic")]
+
+# Set max and min values
+constant = 0.020
+x_min = min(df_jam_heavy["longitude"]) - constant
+x_max = max(df_jam_heavy["longitude"]) + constant
+y_min = min(df_jam_heavy["latitude"]) - constant
+y_max = max(df_jam_heavy["latitude"]) + constant
+
+# Create scatter plot
+scatter_plot = alt.Chart(df_jam_heavy).mark_circle().encode(
+    x=alt.X("longitude:Q", scale=alt.Scale(domain=[x_min, x_max])),
+    y=alt.Y("latitude:Q", scale=alt.Scale(domain=[y_min, y_max])),
+    size=alt.Size("count:Q")
+)
+
+scatter_plot
 ```
 
 3. 
@@ -356,7 +411,6 @@ a.
 ```{python}
 
 ```
-    
 
 b. 
 ```{python}
