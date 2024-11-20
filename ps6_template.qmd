@@ -120,9 +120,7 @@ folder = "waze_data"
 path = os.path.join(base, folder, "waze_data.csv")
 
 df_waze = pd.read_csv(path)
-```
 
-```{python}
 # Count number of missing and non-missing values
 na_count = df_waze.isna().sum()
 non_na_count = df_waze.notna().sum()
@@ -293,13 +291,36 @@ df_crosswalk["updated_subsubtype"] = df_crosswalk["updated_subsubtype"].str.capi
 3. 
 
 ```{python}
+# Reclassify missing subtypes in original dataset
+df_waze["subtype"] = df_waze["subtype"].fillna("Unclassified")
 
+# Merge crosswalk with original df
+df_merged = df_waze.merge(df_crosswalk, on=["type", "subtype"])
+
+# Count number of rows for Accident - Unclassified
+updated_type_subtype_count = df_merged.value_counts(
+    ["updated_type", "updated_subtype"])
+updated_type_subtype_count.get(("Accident", "Unclassified"))
 ```
+
+There are 24,359 rows tagged as Accident - Unclassified.
 
 4. 
 
 ```{python}
+# Compare "type" values for crosswalk and merged dfs
+crosswalk_types = set(df_crosswalk["type"].unique())
+merged_types = set(df_merged["type"].unique())
 
+crosswalk_types == merged_types
+```
+
+```{python}
+# Compare "subtype" values for crosswalk and merged dfs
+crosswalk_subtypes = set(df_crosswalk["subtype"].unique())
+merged_subtypes = set(df_merged["subtype"].unique())
+
+crosswalk_subtypes == merged_subtypes
 ```
 
 
