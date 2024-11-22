@@ -64,20 +64,21 @@ print_file_contents("./top_alerts_map_byhour/app.py") # Change accordingly
 ```
 
 ```{python} 
-#| echo: false
+# | echo: false
 
 # Import required packages.
+import json
+import requests
+import re
+import os
+from zipfile import ZipFile
 import pandas as pd
-import altair as alt 
+import altair as alt
 import pandas as pd
 from datetime import date
 import numpy as np
-alt.data_transformers.disable_max_rows() 
-from zipfile import ZipFile
-import os
-import re
-import requests
-
+alt.data_transformers.disable_max_rows()
+alt.renderers.enable("png")
 import json
 ```
 
@@ -457,9 +458,9 @@ base_chicago + scatter_plot
 
 a. 
 
-```{python}
+![Dropdown menu](top_alerts_map/dropdown_menu.png){width=200}
 
-```
+There are 16 type x subtype combinations in the dropdown menu.
 
 b. 
 ```{python}
