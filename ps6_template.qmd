@@ -400,7 +400,7 @@ y_max = max(df_jam_heavy["longitude"]) + constant
 scatter_plot = alt.Chart(df_jam_heavy).mark_point().encode(
     x=alt.X("latitude:Q", scale=alt.Scale(domain=[x_min, x_max])),
     y=alt.Y("longitude:Q", scale=alt.Scale(domain=[y_min, y_max])),
-    size=alt.Size("count:Q")
+    size=alt.Size("count:Q", scale=alt.Scale(range=[10, 100]))
 )
 
 scatter_plot
@@ -463,21 +463,22 @@ a.
 There are 16 type x subtype combinations in the dropdown menu.
 
 b. 
-```{python}
 
-```
+![Jam - Heavy Traffic](top_alerts_map/jam_heavy_traffic.png){width=200}
 
 c. 
-```{python}
 
-```
+![Road Closed - Event](top_alerts_map/road_closed_event.png){width=200}
 
 d. 
-```{python}
 
-```
+Where are alerts for major accidents the most common?
+
+![Accident - Major](top_alerts_map/accident_major.png){width=200}
 
 e. 
+
+We can add another column that will display a table containing relevant information such as number of alerts and names of the neighborhoods where the most common alerts occur.
 
 # App #2: Top Location by Alert Type and Hour Dashboard (20 points) {-}
 
