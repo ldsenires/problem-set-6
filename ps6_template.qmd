@@ -76,6 +76,7 @@ alt.data_transformers.disable_max_rows()
 from zipfile import ZipFile
 import os
 import re
+import requests
 
 import json
 ```
@@ -333,12 +334,12 @@ a.
 ```{python}
 # Extract coordinates from geo data
 coordinate_pattern = r"([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)"
-df_merged[["longitude", "latitude"]
+df_merged[["latitude", "longitude"]
           ] = df_merged["geo"].str.extract(coordinate_pattern)
 
 # Convert coordinates to float
-df_merged["longitude"] = df_merged["longitude"].astype(float)
 df_merged["latitude"] = df_merged["latitude"].astype(float)
+df_merged["longitude"] = df_merged["longitude"].astype(float)
 ```
 
 ChatGPT prompt: in python, create a regular expression that extracts coordinates from a geo variable in a dataframe that holds coordinates data in the form POINT(-87.676685 41.929692)
@@ -346,12 +347,12 @@ ChatGPT prompt: in python, create a regular expression that extracts coordinates
 b. 
 ```{python}
 # Bin coordinates by rounding
-df_merged["longitude"] = df_merged["longitude"].round(2)
 df_merged["latitude"] = df_merged["latitude"].round(2)
+df_merged["longitude"] = df_merged["longitude"].round(2)
 
 # Count observations per coordinate pair
 df_coord_count = df_merged.groupby(
-    ["longitude", "latitude"]).size().reset_index()
+    ["latitude", "longitude"]).size().reset_index()
 df_coord_count.sort_values(by=0, ascending=False, inplace=True)
 df_coord_count.head(1)
 ```
@@ -363,7 +364,7 @@ c.
 ```{python}
 # Aggregate binned counts based on type, subtype, and coordinates
 df_coord_count = df_merged.groupby(
-    ["updated_type", "updated_subtype", "longitude", "latitude"]).size().reset_index()
+    ["updated_type", "updated_subtype", "latitude", "longitude"]).size().reset_index()
 df_coord_count = df_coord_count.rename(columns={0: "count"})
 
 # Aggregate by type and subtype and get top 10 largest rows by count
@@ -388,16 +389,16 @@ df_jam_heavy = df_coord_count_top10.loc[
     (df_coord_count_top10["updated_type"] == "Jam") & (df_coord_count_top10["updated_subtype"] == "Heavy_traffic")]
 
 # Set max and min values
-constant = 0.020
-x_min = min(df_jam_heavy["longitude"]) - constant
-x_max = max(df_jam_heavy["longitude"]) + constant
-y_min = min(df_jam_heavy["latitude"]) - constant
-y_max = max(df_jam_heavy["latitude"]) + constant
+constant = 0.02
+x_min = min(df_jam_heavy["latitude"]) - constant
+x_max = max(df_jam_heavy["latitude"]) + constant
+y_min = min(df_jam_heavy["longitude"]) - constant
+y_max = max(df_jam_heavy["longitude"]) + constant
 
 # Create scatter plot
-scatter_plot = alt.Chart(df_jam_heavy).mark_circle().encode(
-    x=alt.X("longitude:Q", scale=alt.Scale(domain=[x_min, x_max])),
-    y=alt.Y("latitude:Q", scale=alt.Scale(domain=[y_min, y_max])),
+scatter_plot = alt.Chart(df_jam_heavy).mark_point().encode(
+    x=alt.X("latitude:Q", scale=alt.Scale(domain=[x_min, x_max])),
+    y=alt.Y("longitude:Q", scale=alt.Scale(domain=[y_min, y_max])),
     size=alt.Size("count:Q")
 )
 
@@ -409,26 +410,47 @@ scatter_plot
 a. 
 
 ```{python}
+# Send a get request
+url = "https://data.cityofchicago.org/api/geospatial/bbvz-uum9?method=export&format=GeoJSON"
+response = requests.get(url)
 
+# Set filepath
+folder = "top_alerts_map"
+filepath = os.path.join(base, folder, "chicago-boundaries.geojson")
+
+# Save file to local folder
+if response.status_code == 200:
+    with open(filepath, "wb") as file:
+        file.write(response.content)
 ```
 
 b. 
 ```{python}
-# MODIFY ACCORDINGLY
-file_path = "./top_alerts_map/chicago-boundaries.geojson"
-#----
+# Load geojson file
+folder = "top_alerts_map"
+filepath = os.path.join(base, folder, "chicago-boundaries.geojson")
 
-with open(file_path) as f:
+with open(filepath) as f:
     chicago_geojson = json.load(f)
 
-geo_data = alt.Data(values=chicago_geojson["features"])
-
+geo_data = alt.Data(values=chicago_geojson,
+                    format=alt.DataFormat(property="features"))
 ```
 
 4. 
 
 ```{python}
+# Create base map of Chicago
+base_chicago = alt.Chart(geo_data).mark_geoshape(
+  fill="lightgray",
+  stroke="white"
+).properties(
+  title="Top 10 Highest Number of 'Jam - Heavy Traffic' Alerts"
+).project(
+  type="equirectangular"
+)
 
+base_chicago + scatter_plot
 ```
 
 5. 
