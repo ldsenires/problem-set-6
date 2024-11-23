@@ -335,7 +335,7 @@ a.
 ```{python}
 # Extract coordinates from geo data
 coordinate_pattern = r"([-+]?\d+\.\d+)\s+([-+]?\d+\.\d+)"
-df_merged[["latitude", "longitude"]
+df_merged[["longitude", "latitude"]
           ] = df_merged["geo"].str.extract(coordinate_pattern)
 
 # Convert coordinates to float
@@ -385,22 +385,22 @@ The dataframe has 155 rows. Aggregation was first done based on type, subtype, l
 
 2. 
 ```{python}
+# Set max and min values
+# Constants manually set to correspond with graph produced in app
+x_min = min(df_coord_count_top10["longitude"]) - 0.1
+x_max = max(df_coord_count_top10["longitude"]) + 0.06
+y_min = min(df_coord_count_top10["latitude"])
+y_max = max(df_coord_count_top10["latitude"]) + 0.05
+
 # Filter data for "Jam - Heavy Traffic" alerts
 df_jam_heavy = df_coord_count_top10.loc[
     (df_coord_count_top10["updated_type"] == "Jam") & (df_coord_count_top10["updated_subtype"] == "Heavy_traffic")]
 
-# Set max and min values
-constant = 0.02
-x_min = min(df_jam_heavy["latitude"]) - constant
-x_max = max(df_jam_heavy["latitude"]) + constant
-y_min = min(df_jam_heavy["longitude"]) - constant
-y_max = max(df_jam_heavy["longitude"]) + constant
-
 # Create scatter plot
 scatter_plot = alt.Chart(df_jam_heavy).mark_point().encode(
-    x=alt.X("latitude:Q", scale=alt.Scale(domain=[x_min, x_max])),
-    y=alt.Y("longitude:Q", scale=alt.Scale(domain=[y_min, y_max])),
-    size=alt.Size("count:Q", scale=alt.Scale(range=[10, 100]))
+    x=alt.X("longitude:Q", scale=alt.Scale(domain=[x_min, x_max])),
+    y=alt.Y("latitude:Q", scale=alt.Scale(domain=[y_min, y_max])),
+    size=alt.Size("count:Q", scale=alt.Scale(range=[1, 100]))
 )
 
 scatter_plot

@@ -53,7 +53,7 @@ def server(input, output, session):
         base_data.plot(ax=ax, color="lightgray", edgecolor="white")
         
         scatter_data = input_alert()
-        ax.scatter(scatter_data["latitude"], scatter_data["longitude"])
+        ax.scatter(scatter_data["longitude"], scatter_data["latitude"])
         
         minx, miny, maxx, maxy = base_data.total_bounds
         ax.set_xlim(minx, maxx)
