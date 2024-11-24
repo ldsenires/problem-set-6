@@ -26,7 +26,7 @@ We use (`*`) to indicate a problem that we think might be time consuming.
 1. "This submission is my work alone and complies with the 30538 integrity
 policy." Add your initials to indicate your agreement: \*\*LS\*\*
 2. "I have uploaded the names of anyone I worked with on the problem set **[here](https://docs.google.com/forms/d/185usrCREQaUbvAXpWhChkjghdGgmAZXA3lPWpXLLsts/edit)**"  \*\*LS\*\* (2 point)
-3. Late coins used this pset: \*\*00\*\* Late coins left after submission: \*\*01\*\*
+3. Late coins used this pset: \*\*01\*\* Late coins left after submission: \*\*00\*\*
 
 4. Before starting the problem set, make sure to read and agree to the terms of data usage for the Waze data [here](https://canvas.uchicago.edu/courses/59054/quizzes/130617).
 
@@ -390,7 +390,7 @@ The dataframe has 155 rows. Aggregation was first done based on type, subtype, l
 # Constants manually set to correspond with graph produced in app
 x_min = min(df_coord_count_top10["longitude"]) - 0.1
 x_max = max(df_coord_count_top10["longitude"]) + 0.06
-y_min = min(df_coord_count_top10["latitude"])
+y_min = min(df_coord_count_top10["latitude"]) - 0.02
 y_max = max(df_coord_count_top10["latitude"]) + 0.05
 
 # Filter data for "Jam - Heavy Traffic" alerts
@@ -592,32 +592,68 @@ It seems that road construction is done more during night hours.
 
 1. 
 
-
-
 a. 
+
+No, because there would be too many combinations of ranges.
 
 b. 
 
 ```{python}
+# Set range of hours
+min_hour = "06:00"
+max_hour = "09:00"
 
+# Filter data for "Jam - Heavy Traffic" alerts for each time
+df_jam_heavy_range = df_coord_hourly_count_top10.loc[
+    (df_coord_hourly_count_top10["updated_type"] == "Jam") & (df_coord_hourly_count_top10["updated_subtype"] == "Heavy_traffic")]
+df_jam_heavy_range = df_jam_heavy_range.loc[(df_jam_heavy_range["hour"] >= min_hour) & (df_jam_heavy_range["hour"] <= max_hour)]
+
+# Create scatter plot
+scatter_plot_range = alt.Chart(df_jam_heavy_range).mark_point().encode(
+    x=alt.X("longitude:Q", scale=alt.Scale(domain=[x_min, x_max])),
+    y=alt.Y("latitude:Q", scale=alt.Scale(domain=[y_min, y_max])),
+    size=alt.Size("count:Q", scale=alt.Scale(range=[1, 100])),
+    color=alt.Color("hour:N")
+).properties(
+    title={
+        "text": "Top 10 Highest Number of 'Jam - Heavy Traffic' Alerts",
+        "subtitle": "6:00 - 9:00 AM" 
+    }
+)
+
+base_chicago + scatter_plot_range
 ```
 
 2. 
 
 a. 
 
+![UI - with range slider](top_alerts_map_byhour_sliderrange/ui_range_slider.png){width=400}
 
 b. 
-    
+
+![Jam - Heavy Traffic at 6am to 9am](top_alerts_map_byhour_sliderrange/jam_heavy_traffic_6-9am.png){width=400}
+
 3. 
 
 a. 
     
+![UI - with switch button](top_alerts_map_byhour_sliderrange/ui_slider_switch.png){width=400}
+
+The possible values are False and True.
 
 b. 
 
+![UI - switch button toggled](top_alerts_map_byhour_sliderrange/ui_slider_switch_toggled.png){width=400}
+
+![UI - switch button not toggled](top_alerts_map_byhour_sliderrange/ui_slider_switch_not_toggled.png){width=400}
 
 c. 
 
+![Sample: Toggled - Range](top_alerts_map_byhour_sliderrange/sample_range.png){width=400}
+
+![Sample: Not Toggled - Single](top_alerts_map_byhour_sliderrange/sample_single.png){width=400}
 
 d.
+
+On the server side, I would aggregate the data based on time period (Morning or Afternoon). I would edit the function for rendering the plot to vary point size based on count/number of alerts and to assign color based on time period.
