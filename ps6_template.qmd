@@ -326,6 +326,7 @@ merged_subtypes = set(df_merged["subtype"].unique())
 crosswalk_subtypes == merged_subtypes
 ```
 
+Since both checks return "True" as shown above, this confirms that the crosswalk and merged datasets have the same values in type and subtype.
 
 # App #1: Top Location by Alert Type Dashboard (30 points){-}
 
@@ -464,17 +465,17 @@ There are 16 type x subtype combinations in the dropdown menu.
 
 b. 
 
-![Jam - Heavy Traffic](top_alerts_map/jam_heavy_traffic.png){width=200}
+![Jam - Heavy Traffic](top_alerts_map/jam_heavy_traffic.png){width=400}
 
 c. 
 
-![Road Closed - Event](top_alerts_map/road_closed_event.png){width=200}
+![Road Closed - Event](top_alerts_map/road_closed_event.png){width=400}
 
 d. 
 
 Where are alerts for major accidents the most common?
 
-![Accident - Major](top_alerts_map/accident_major.png){width=200}
+![Accident - Major](top_alerts_map/accident_major.png){width=400}
 
 e. 
 
@@ -550,42 +551,47 @@ for time in times:
     # Append to list of plots
     plots.append(scatter_plot_hourly)
 
-# Combine plots and add Chicago base map
-combined_plots = base_chicago + plots[0]
-
-for plot in plots[1:]:
-    combined_plots = combined_plots | (base_chicago + plot)
-
-combined_plots
+# Add Chicago base map and print plot 1
+base_chicago + plots[0]
 ```
 
+```{python}
+# Add Chicago base map and print plot 2
+base_chicago + plots[1]
+```
+
+```{python}
+# Add Chicago base map and print plot 3
+base_chicago + plots[2]
+```
 
 2.
 
 a. 
 
-![UI - with slider](top_alerts_map_byhour/ui_select_slider.png){width=200}
+![UI - with slider](top_alerts_map_byhour/ui_select_slider.png){width=400}
 
 b. 
 
-![Jam - Heavy Traffic at 6am](top_alerts_map_byhour/jam_heavy_traffic_6am.png){width=200}
+![Jam - Heavy Traffic at 6am](top_alerts_map_byhour/jam_heavy_traffic_6am.png){width=400}
 
-![Jam - Heavy Traffic at 12pm](top_alerts_map_byhour/jam_heavy_traffic_12pm.png){width=200}
+![Jam - Heavy Traffic at 12pm](top_alerts_map_byhour/jam_heavy_traffic_12pm.png){width=400}
 
-![Jam - Heavy Traffic at 6pm](top_alerts_map_byhour/jam_heavy_traffic_6pm.png){width=200}
+![Jam - Heavy Traffic at 6pm](top_alerts_map_byhour/jam_heavy_traffic_6pm.png){width=400}
 
 c. 
 
 It seems that road construction is done more during night hours.
 
-![No alerts for road construction at 7am](top_alerts_map_byhour/road_construction_7am.png){width=200}
+![No alerts for road construction at 7am](top_alerts_map_byhour/road_construction_7am.png){width=400}
 
-![Multiple alerts for road construction at 7pm](top_alerts_map_byhour/road_construction_7pm.png){width=200}
+![Multiple alerts for road construction at 7pm](top_alerts_map_byhour/road_construction_7pm.png){width=400}
 
 
 # App #3: Top Location by Alert Type and Hour Dashboard (20 points){-}
 
 1. 
+
 
 
 a. 
